@@ -35,24 +35,30 @@ type RequestAI struct {
 }
 
 func main() {
-	initDB()
-	defer db.Close()
+    initDB()
+    defer db.Close()
 
-	// --- ROUTING ---
-	http.HandleFunc("/api/kampus", getKampusHandler)
-	http.HandleFunc("/api/jurusan", getJurusanHandler)
-	http.HandleFunc("/api/rekomendasi-ai", getAIRecommendationHandler)
+    // --- ROUTING ---
+    http.HandleFunc("/api/kampus", getKampusHandler)
+    http.HandleFunc("/api/jurusan", getJurusanHandler)
+    http.HandleFunc("/api/rekomendasi-ai", getAIRecommendationHandler)
 
-	fmt.Println("🚀 Server Golang jalan di port 8080...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+    // AMBIL PORT DARI SYSTEM (WAJIB BUAT RAILWAY/RENDER)
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080" // Default kalau di laptop sendiri
+    }
+
+    fmt.Println("🚀 Server Golang jalan di port " + port)
+    log.Fatal(http.ListenAndServe(":"+port, nil))
 }
-
 // --- FUNGSI KONEKSI DATABASE ---
 func initDB() {
 	var err error
-	// Ganti "postgres" dan "password_lu" sesuai setup lokal di Linux lu
-	// Ganti baris connStr di main.go lu jadi begini:
-	connStr := "postgres://postgres:pass-utbk26_Skywalker51%23@db.aauajjwjjmokggheytih.supabase.co:5432/postgres"
+	var err error
+    // Panggil dari environment variable DATABASE_URL yang di Railway
+    connStr := os.Getenv("DATABASE_URL")
+    
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("Gagal konek DB: ", err)
