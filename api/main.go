@@ -35,35 +35,44 @@ type RequestAI struct {
 }
 
 func main() {
-    initDB()
-    defer db.Close()
+	initDB()
+	defer db.Close()
 
-    // --- ROUTING ---
-    http.HandleFunc("/api/kampus", getKampusHandler)
-    http.HandleFunc("/api/jurusan", getJurusanHandler)
-    http.HandleFunc("/api/rekomendasi-ai", getAIRecommendationHandler)
+	// --- ROUTING ---
+	http.HandleFunc("/api/kampus", getKampusHandler)
+	http.HandleFunc("/api/jurusan", getJurusanHandler)
+	http.HandleFunc("/api/rekomendasi-ai", getAIRecommendationHandler)
 
-    // AMBIL PORT DARI SYSTEM (WAJIB BUAT RAILWAY/RENDER)
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "8080" // Default kalau di laptop sendiri
-    }
+	// AMBIL PORT DARI SYSTEM (WAJIB BUAT RAILWAY/RENDER)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Default kalau ngetes di laptop Windows lu
+	}
 
-    fmt.Println("🚀 Server Golang jalan di port " + port)
-    log.Fatal(http.ListenAndServe(":"+port, nil))
+	fmt.Println("🚀 Server Golang jalan di port " + port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
+
 // --- FUNGSI KONEKSI DATABASE ---
 func initDB() {
 	var err error
-    // Panggil dari environment variable DATABASE_URL yang di Railway
-    connStr := os.Getenv("DATABASE_URL")
-    
+	
+	// Tarik dari Railway Variables
+	connStr := os.Getenv("DATABASE_URL")
+	
+	// Fallback untuk ngetes di lokal laptop tanpa error "invalid port"
+	if connStr == "" {
+		connStr = "postgres://postgres:pass-utbk26_Skywalker51%23@db.aauajjwjjmokggheytih.supabase.co:5432/postgres"
+		fmt.Println("⚠️ Peringatan: Menggunakan link DB lokal...")
+	}
+
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Gagal konek DB: ", err)
+		log.Fatal("❌ Gagal buka koneksi DB: ", err)
 	}
+
 	if err = db.Ping(); err != nil {
-		log.Fatal("DB nggak respon: ", err)
+		log.Fatal("❌ DB nggak respon: ", err)
 	}
 	fmt.Println("✅ Database PostgreSQL Terkoneksi!")
 }
@@ -71,7 +80,13 @@ func initDB() {
 // --- HANDLER 1: Ambil List Kampus ---
 func getKampusHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") // Biar ga kena CORS error di frontend
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		return
+	}
 
 	rows, err := db.Query("SELECT id, nama_kampus FROM kampus ORDER BY nama_kampus ASC")
 	if err != nil {
@@ -84,7 +99,7 @@ func getKampusHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var k Kampus
 		if err := rows.Scan(&k.ID, &k.Nama); err != nil {
-			log.Println(err)
+			log.Println("Scan error:", err)
 			continue
 		}
 		kampuses = append(kampuses, k)
@@ -96,6 +111,12 @@ func getKampusHandler(w http.ResponseWriter, r *http.Request) {
 func getJurusanHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		return
+	}
 
 	kampusID := r.URL.Query().Get("kampus_id")
 	if kampusID == "" {
@@ -115,7 +136,7 @@ func getJurusanHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var j Jurusan
 		if err := rows.Scan(&j.ID, &j.NamaJurusan, &j.SkorMinimal, &j.SkorAman); err != nil {
-			log.Println(err)
+			log.Println("Scan error:", err)
 			continue
 		}
 		jurusans = append(jurusans, j)
@@ -130,7 +151,6 @@ func getAIRecommendationHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	// Handle preflight request buat CORS
 	if r.Method == "OPTIONS" {
 		return
 	}
@@ -142,25 +162,31 @@ func getAIRecommendationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := context.Background()
-	// Pastikan lu udah set GEMINI_API_KEY di environment variables Linux lu
-	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		fmt.Println("⚠️ ERROR: GEMINI_API_KEY kosong!")
+		http.Error(w, "API Key belum di-set", http.StatusInternalServerError)
+		return
+	}
+
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		http.Error(w, "Gagal inisialisasi AI", http.StatusInternalServerError)
 		return
 	}
 	defer client.Close()
 
+	// Balik pakai versi 2.5 sesuai request lu
 	model := client.GenerativeModel("gemini-2.5-flash")
 	
-	prompt := fmt.Sprintf("Seorang siswa mendapatkan skor UTBK %f dan mendaftar di prodi %s. Berikan maksimal 2 kalimat rekomendasi singkat mengenai 2 alternatif jurusan lain (satu setara, satu dibawahnya) yang masih relevan. Gunakan bahasa yang santai.", reqData.Skor, reqData.Target)
+	prompt := fmt.Sprintf("Seorang siswa mendapatkan skor UTBK %.2f dan mendaftar di prodi %s. Berikan maksimal 2 kalimat rekomendasi singkat mengenai 2 alternatif jurusan lain (satu setara, satu dibawahnya) yang masih relevan. Gunakan bahasa yang santai.", reqData.Skor, reqData.Target)
 
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		http.Error(w, "Gagal generate AI", http.StatusInternalServerError)
+		http.Error(w, "Gagal generate AI: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Ekstrak teks dari respon Gemini
 	var aiResponseText string
 	for _, cand := range resp.Candidates {
 		if cand.Content != nil {
@@ -170,6 +196,5 @@ func getAIRecommendationHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Kirim balik ke frontend dalam bentuk JSON
 	json.NewEncoder(w).Encode(map[string]string{"saran": aiResponseText})
 }
