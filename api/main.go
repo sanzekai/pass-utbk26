@@ -58,7 +58,7 @@ func initDB() {
 	var err error
 	
 	// Tarik dari Railway Variables
-	connStr := os.Getenv("DATABASE_URL")
+	connStr := os.Getenv("DB_URL")
 	
 	// Fallback untuk ngetes di lokal laptop tanpa error "invalid port"
 	if connStr == "" {
