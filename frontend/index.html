@@ -79,10 +79,12 @@
     </div>
 
     <script>
-        // API Endpoints diarahkan langsung ke port Golang (8080)
-        const API_KAMPUS = 'http://localhost:8080/api/kampus'; 
-        const API_JURUSAN = 'http://localhost:8080/api/jurusan'; 
-        const API_REKOMENDASI = 'http://localhost:8080/api/rekomendasi-ai';
+
+    const API_BASE = 'https://pass-utbk26-production.up.railway.app';
+
+    const API_KAMPUS = `${API_BASE}/api/kampus`; 
+    const API_JURUSAN = `${API_BASE}/api/jurusan`; 
+    const API_REKOMENDASI = `${API_BASE}/api/rekomendasi-ai`;
 
         const kampusSelect = document.getElementById('kampus');
         const jurusanSelect = document.getElementById('jurusan');
