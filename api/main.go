@@ -55,7 +55,6 @@ func main() {
 // --- FUNGSI KONEKSI DATABASE ---
 func initDB() {
 	var err error
-	var err error
     // Panggil dari environment variable DATABASE_URL yang di Railway
     connStr := os.Getenv("DATABASE_URL")
     
