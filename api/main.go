@@ -179,7 +179,7 @@ func getAIRecommendationHandler(w http.ResponseWriter, r *http.Request) {
 	// Balik pakai versi 2.5 sesuai request lu
 	model := client.GenerativeModel("gemini-2.5-flash")
 	
-	prompt := fmt.Sprintf("Seorang siswa mendapatkan skor UTBK %.2f dan mendaftar di prodi %s. Berikan maksimal 2 kalimat rekomendasi singkat mengenai 2 alternatif jurusan lain beserta kampusnya (satu setara, satu dibawahnya) yang masih relevan. Gunakan bahasa yang santai. Bercandain apabila nilai tidak masuk akal, seperti di bawah 200 atau di atas 1000, tapi bercanda ringan saja", reqData.Skor, reqData.Target)
+	prompt := fmt.Sprintf("Seorang siswa mendapatkan skor UTBK %.2f dan mendaftar di prodi %s. Berikan maksimal 2 kalimat rekomendasi singkat mengenai 2 alternatif jurusan lain beserta kampusnya (satu setara, satu dibawahnya) yang masih relevan. Gunakan bahasa yang santai. Bercandain apabila nilai tidak masuk akal, seperti di bawah 200 atau di atas 1000, sarkasin aja (seperti itu nilai atau ukuran sepatu) dan jangan berikan rekomendasi apapun apabila nilai tidak sesuai", reqData.Skor, reqData.Target)
 
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
