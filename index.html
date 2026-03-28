@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UTBK Score Checker</title>
-    <link rel="icon" href="image/logo.png" type="image/png">
+    <link rel="icon" href="image/logowhite.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
@@ -112,7 +112,6 @@ window.onload = function() {
     }
 };
 
-        // 1. Ambil data Kampus pas halaman diload dari Database
         async function fetchKampus() {
             try {
                 const response = await fetch(API_KAMPUS);
@@ -129,7 +128,6 @@ window.onload = function() {
         }
         fetchKampus();
 
-        // 2. Ambil Jurusan pas Kampus dipilih dari Database
         kampusSelect.addEventListener('change', async function() {
             const kampusId = this.value;
             jurusanSelect.disabled = true;
@@ -145,7 +143,6 @@ window.onload = function() {
                 jurusanSelect.innerHTML = '<option value="" disabled selected>-- Pilih Jurusan --</option>';
                 
                 data.forEach(j => {
-                    // Simpan skor di attribute HTML biar gampang divalidasi lokal
                     jurusanSelect.innerHTML += `<option value="${j.nama}" data-min="${j.min}" data-aman="${j.aman}">${j.nama}</option>`;
                 });
             } catch (error) {
@@ -154,7 +151,6 @@ window.onload = function() {
             }
         });
 
-        // validasi skor dan ai
         document.getElementById('validatorForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -165,7 +161,6 @@ window.onload = function() {
             const skorMin = parseFloat(jurusanOption.getAttribute('data-min'));
             const skorAman = parseFloat(jurusanOption.getAttribute('data-aman'));
 
-            // result box
             const resultBox = document.getElementById('resultBox');
             const badge = document.getElementById('badgeStatus');
             const teksStatus = document.getElementById('teksStatus');
@@ -173,7 +168,6 @@ window.onload = function() {
             
             resultBox.classList.remove('hidden');
 
-            // validasi nilai user dengan skornya
             if (skorUser >= skorAman) {
                 resultBox.className = "mt-6 p-6 rounded-2xl border-2 bg-emerald-50 border-emerald-200 block";
                 badge.className = "inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase mb-2 bg-emerald-200 text-emerald-800";
@@ -199,7 +193,6 @@ window.onload = function() {
                 teksDetail.innerText = `Skor kamu (${skorUser}) di bawah batas minimal (${skorMin}) untuk ${namaJurusan}. Pertimbangkan opsi lain.`;
             }
 
-            // ai untuk rekom jurusan lain
             const aiBox = document.getElementById('aiBox');
             const aiLoading = document.getElementById('aiLoading');
             const aiResult = document.getElementById('aiResult');
@@ -208,12 +201,10 @@ window.onload = function() {
             aiLoading.classList.remove('hidden');
             aiResult.classList.add('hidden');
             
-            // Ubah tombol biar user tau lagi proses
             btn.disabled = true;
             btn.innerText = "Analising...";
 
             try {
-                // tembak api golang ke gemini
                 const resAi = await fetch(API_REKOMENDASI, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
